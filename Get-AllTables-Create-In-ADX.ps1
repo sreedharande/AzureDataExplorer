@@ -8,6 +8,31 @@ PARAM(
     $nugetDownloadUrl = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
 )
 
+
+Function CheckModules($module) {
+    $installedModule = Get-InstalledModule -Name $module -ErrorAction SilentlyContinue
+    if ($null -eq $installedModule) {
+        Write-Warning "The $module PowerShell module is not found"
+        #check for Admin Privleges
+        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+
+        if (-not ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+            #Not an Admin, install to current user
+            Write-Warning -Message "Can not install the $module module. You are not running as Administrator"
+            Write-Warning -Message "Installing $module module to current user Scope"
+            Install-Module -Name $module -Scope CurrentUser -Force
+            Import-Module -Name $module -Force
+        }
+        else {
+            #Admin, install to all users
+            Write-Warning -Message "Installing the $module module to all users"
+            Install-Module -Name $module -Force
+            Import-Module -Name $module -Force
+        }
+    }
+    #Install-Module will obtain the module from the gallery and install it on your local machine, making it available for use.
+    #Import-Module will bring the module and its functions into your current powershell session, if the module is installed.  
+}
 Function InvokeKustoCLI($adxCommandsFile) {
     $kustoToolsDir = "$env:USERPROFILE\.nuget\packages\$kustoToolsPackage\"
     $currentDir = Get-Location
@@ -36,6 +61,22 @@ Function InvokeKustoCLI($adxCommandsFile) {
 
     set-location $currentDir
 }
+
+CheckModules("Az.Resources")
+CheckModules("Az.OperationalInsights")
+
+Write-Host "`r`nIf not logged in to Azure already, you will now be asked to log in to your Azure environment. `nFor this script to work correctly, you need to provide credentials `nAzure Log Analytics Workspace Read Permissions `nAzure Data Explorer Database User Permission. `nThis will allow the script to read all the Tables from Log Analytics Workspace `nand create tables in Azure Data Explorer.`r`n" -BackgroundColor Blue
+
+Read-Host -Prompt "Press enter to continue or CTRL+C to quit the script"
+
+$context = Get-AzContext
+
+if(!$context){
+    Connect-AzAccount
+    $context = Get-AzContext
+}
+
+$SubscriptionId = $context.Subscription.Id
 
 if(!(Test-Path "$PSScriptRoot\KustoQueries" -PathType Container)) { 
     New-Item -Path $PSScriptRoot -Name "KustoQueries" -ItemType "directory"
