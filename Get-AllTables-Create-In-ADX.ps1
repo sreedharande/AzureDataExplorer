@@ -1,8 +1,10 @@
 PARAM(        
-    [Parameter(Mandatory=$true)] $WorkspaceId,            
-    [Parameter(Mandatory=$true)] $kustoEngineUrl,    
+    [Parameter(Mandatory=$true)] $LogAnalyticsWorkspaceId,            
+    [Parameter(Mandatory=$true)] $ADXClusterURL,
+    [Parameter(Mandatory=$true)] $ADXDBName,
+    $ADXEngineUrl = "$ADXClusterURL/$ADXDBName",
     $kustoToolsPackage = "microsoft.azure.kusto.tools",
-    $kustoConnectionString = "$kustoEngineUrl;Fed=True",
+    $kustoConnectionString = "$ADXEngineUrl;Fed=True",
     $nugetPackageLocation = "$($env:USERPROFILE)\.nuget\packages", #global-packages", # local
     $nugetIndex = "https://api.nuget.org/v3/index.json",
     $nugetDownloadUrl = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
@@ -46,7 +48,7 @@ Function InvokeKustoCLI($adxCommandsFile) {
             (new-object net.webclient).downloadFile($nugetDownloadUrl, "$pwd\nuget.exe")
         }
 
-        nuget install $kustoToolsPackage -Source $nugetIndex -OutputDirectory $nugetPackageLocation
+        &.\nuget.exe install $kustoToolsPackage -Source $nugetIndex -OutputDirectory $nugetPackageLocation
     }
 
     $kustoExe = $kustoToolsDir + @(get-childitem -recurse -path $kustoToolsDir -Name kusto.cli.exe)[-1]
@@ -62,6 +64,7 @@ Function InvokeKustoCLI($adxCommandsFile) {
     set-location $currentDir
 }
 
+Write-Host "ADXEngineUrl:$ADXEngineUrl"
 CheckModules("Az.Resources")
 CheckModules("Az.OperationalInsights")
 
@@ -85,7 +88,7 @@ if(!(Test-Path "$PSScriptRoot\KustoQueries" -PathType Container)) {
 #Get All the Tables from LA Workspace
 $queryAllTables = 'search *| distinct $table| sort by $table asc nulls last'
 
-$resultsAllTables = (Invoke-AzOperationalInsightsQuery -WorkspaceId $WorkspaceId -Query $queryAllTables).Results
+$resultsAllTables = (Invoke-AzOperationalInsightsQuery -WorkspaceId $LogAnalyticsWorkspaceId -Query $queryAllTables).Results
 
 foreach ($table in $resultsAllTables) {
     $TableName = $table.'$table'
@@ -95,7 +98,7 @@ foreach ($table in $resultsAllTables) {
     else {        
         $query = $TableName + ' | getschema | project ColumnName, DataType'
 
-        $output = (Invoke-AzOperationalInsightsQuery -WorkspaceId $WorkspaceId -Query $query).Results
+        $output = (Invoke-AzOperationalInsightsQuery -WorkspaceId $LogAnalyticsWorkspaceId -Query $query).Results
 
         $TableExpandFunction = $TableName + 'Expand'
         $TableRaw = $TableName + 'Raw'
@@ -158,4 +161,3 @@ foreach ($table in $resultsAllTables) {
 }
 Write-Host "Successfully created all the tables in ADX Cluster Database"
 Write-Host "Please create Ingestion Pipeline"
-
