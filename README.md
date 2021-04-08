@@ -14,8 +14,8 @@ Then you ingest (load) data into a database so that you can run queries against 
 PowerShell prompts you to enter the following parameters
 
 1. Azure Log Analytics Workspace Id
-2. ADX Cluster URI 
-   Ex: https://<<ADXClusterName>>.<<region>>.kusto.windows.net
+2. ADX Cluster URI  
+   Ex: `https://<<ADXClusterName>>.<<region>>.kusto.windows.net`
 3. Database Name
 
 ## Export data to Azure Data Explorer using Data Export  
