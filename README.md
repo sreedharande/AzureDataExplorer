@@ -1,3 +1,5 @@
+## UPDATE : I have successfully released end-to-end automation script (V2.0) to integrate Azure Data Explorer without being going to Azure Portal. Please download tool from Azure Sentinel Official GitHub Repo - https://github.com/Azure/Azure-Sentinel/tree/master/Tools/AzureDataExplorer
+
 ## Azure Log Analytics Log Management using Azure Data Explorer  
 Azure Data Explorer is a fast and highly scalable data exploration service for log and telemetry data. 
 To use Azure Data Explorer, you first create a cluster, and create one or more databases in that cluster. 
